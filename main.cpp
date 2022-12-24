@@ -6,13 +6,15 @@
 #include <time.h>
 #include <unistd.h>
 #include <thread>
-#include <queue>
+#include <deque>
+#include <algorithm>
+
+using namespace std;
 
 void makeGrid(void);
 void displayGrid(void);
 void generateMaze(void);
-
-using namespace std;
+vector<int> randomDirection(vector<vector<int>> possibleDirections);
 
 vector<int> RIGHT ={0,1};
 vector<int> LEFT = {0,-1};
@@ -58,9 +60,17 @@ class graphTracer: public tank {
                 grid[position[0]][position[1]] = letter;
 
                 displayGrid();
-                usleep(1000000);
+                usleep(100000);
             }
             
+        }
+
+        vector<int> toVisit(vector<int> direction){
+            return {position[0] + (direction[0]*2), position[1] + (direction[1]*2)};
+        }
+
+        void setTracer(vector<int> node){
+            position = node;
         }
 };
 
@@ -121,7 +131,7 @@ void displayGrid(void){
 
             switch(grid[i][j]){
                 case 'X':
-                    color = 1;
+                    color = 3;
                     break;
                 case ' ':
                     color = 2;
@@ -137,29 +147,74 @@ void displayGrid(void){
                     break;
             }
             attron(COLOR_PAIR(color));
-            mvprintw(i, j, "   ");
+            mvprintw(i, j*2, "  ");
             attroff(COLOR_PAIR(color));
         }
-        mvprintw(i, width, "\n");
+        mvprintw(i, width*3, "\n");
     }
     refresh();
 }
 
 void generateMaze(void){
     //Creating queue for depth first search
-    queue<vector<int>> nodes;
+    deque<vector<int>> nodes;
 
     //List of visited nodes
     vector<vector<int>> visited;
 
     //Stating position of DFS
     vector<int> start = {(height-1)/2 - 1, (width-1)/2 - 1};
-    graphTracer tracer(start, 'O');
+    graphTracer tracer(start, ' ');
 
     //Push starting position onto queue and mark as visited
-    nodes.push(start);
+    nodes.push_front(start);
     visited.push_back(start);
 
     //Main loop of generation
-    tracer.drawTo(LEFT);
+    while(visited.size() < ((width - 1)/2 * (height - 1)/2) + 1){
+
+        vector<vector<int>> possibleDirections = {RIGHT, LEFT, UP, DOWN};
+        bool foundUnvisited = false;
+        while(possibleDirections.size() > 0){
+            mvprintw(50,50, "%d", possibleDirections.size());
+            //Get random direction
+            vector<int> randDirection = randomDirection(possibleDirections);
+            //Check remove random direction for next choice
+            possibleDirections.erase(remove(possibleDirections.begin(), possibleDirections.end(), randDirection), possibleDirections.end());
+
+            //Check if already been visited
+            vector<int> inVisited = tracer.toVisit(randDirection);
+            if(inVisited[0] > height - 2 || inVisited[1] > width - 2 || inVisited[0] < 1 || inVisited[1] < 1){
+                continue;
+            }
+            if(find(visited.begin(), visited.end(), inVisited) == visited.end()){
+                //If not visited go to it and push new position into visted and queue
+                tracer.drawTo(randDirection);
+
+                visited.push_back(inVisited);
+                nodes.push_front(inVisited);
+
+                foundUnvisited = true;
+                break;
+        }
+
+        }
+
+        if(possibleDirections.size() == 0 && foundUnvisited == false){
+            nodes.pop_front();
+
+            tracer.setTracer(nodes.front());
+        }
+        
+
+
+    }
+    
+}
+
+vector<int> randomDirection(vector<vector<int>> possibleDirections){
+    srand((unsigned)time(NULL));
+    int random = rand() % possibleDirections.size();
+
+    return possibleDirections[random];
 }
