@@ -60,7 +60,7 @@ class graphTracer: public tank {
                 grid[position[0]][position[1]] = letter;
 
                 displayGrid();
-                usleep(100000);
+                usleep(10000);
             }
             
         }
@@ -75,6 +75,7 @@ class graphTracer: public tank {
 };
 
 int main(void){
+    srand((unsigned)time(NULL));
     initscr();
     start_color();
     timeout(-1);
@@ -131,7 +132,7 @@ void displayGrid(void){
 
             switch(grid[i][j]){
                 case 'X':
-                    color = 3;
+                    color = 5;
                     break;
                 case ' ':
                     color = 2;
@@ -213,7 +214,6 @@ void generateMaze(void){
 }
 
 vector<int> randomDirection(vector<vector<int>> possibleDirections){
-    srand((unsigned)time(NULL));
     int random = rand() % possibleDirections.size();
 
     return possibleDirections[random];
