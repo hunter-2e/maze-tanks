@@ -14,29 +14,22 @@ void generateMaze(void);
 
 using namespace std;
 
+vector<int> RIGHT ={0,1};
+vector<int> LEFT = {0,-1};
+vector<int> DOWN = {1,0};
+vector<int> UP = {-1,0}; 
+
 enum size {height = 23, width = 23};
 vector<vector<char>> grid;
 
+
 class tank{
-    private:
-        vector<int> position;
-        char tankLetter;
-
-        vector<int> RIGHT ={0,1};
-        vector<int> LEFT = {0,-1};
-        vector<int> DOWN = {1,0};
-        vector<int> UP = {-1,0};
-
-        void setStart(vector<int> startingPosition){
-            position = {(startingPosition[0] * 2) + 1, (startingPosition[1] * 2) + 1};
-
-            grid[(startingPosition[0] * 2) + 1][(startingPosition[1] * 2) + 1] = tankLetter;
-        }
-
-
     public:
-        tank(vector<int> startingPosition, char tankLetter){
-            this->tankLetter = tankLetter;
+        vector<int> position;
+        char letter;
+
+        tank(vector<int> startingPosition, char letter){
+            this->letter = letter;
             setStart(startingPosition);
         }
 
@@ -44,10 +37,31 @@ class tank{
             return position;
         }
 
+        void setStart(vector<int> startingPosition){
+            position = {(startingPosition[0] * 2) + 1, (startingPosition[1] * 2) + 1};
+
+            grid[(startingPosition[0] * 2) + 1][(startingPosition[1] * 2) + 1] = letter;
+        }
+
 };
 
-class graphTracer: private tank {
+class graphTracer: public tank {
+    using tank::tank;
 
+    public:
+        void drawTo(vector<int> direction){
+
+            for(int draw = 0; draw < 2; draw++){
+                position[0] += direction[0];
+                position[1] += direction[1];
+
+                grid[position[0]][position[1]] = letter;
+
+                displayGrid();
+                usleep(1000000);
+            }
+            
+        }
 };
 
 int main(void){
@@ -77,7 +91,6 @@ int main(void){
     //tank playerOne({0,0}, 'H');
 
     displayGrid();
-    
 }
 
 void makeGrid(void){
@@ -137,17 +150,16 @@ void generateMaze(void){
     queue<vector<int>> nodes;
 
     //List of visited nodes
-    vector<int> visited;
+    vector<vector<int>> visited;
 
     //Stating position of DFS
-    vector<int> start = {height - 1, width - 1};
-
-    graphTracer(start, 'O');
+    vector<int> start = {(height-1)/2 - 1, (width-1)/2 - 1};
+    graphTracer tracer(start, 'O');
 
     //Push starting position onto queue and mark as visited
     nodes.push(start);
-    visited.push(start);
+    visited.push_back(start);
 
-
-    
+    //Main loop of generation
+    tracer.drawTo(LEFT);
 }
