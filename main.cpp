@@ -45,6 +45,23 @@ class tank{
             grid[(startingPosition[0] * 2) + 1][(startingPosition[1] * 2) + 1] = letter;
         }
 
+        void shoot(vector<int> direction){
+            vector<int> bulletPosition = position;
+
+            while(grid[bulletPosition[0]+direction[0]][bulletPosition[1]+direction[1]] == ' '){
+                if(grid[bulletPosition[0]][bulletPosition[1]] == '*'){
+                    grid[bulletPosition[0]][bulletPosition[1]] = ' ';
+                }
+                
+                bulletPosition[0] += direction[0];
+                bulletPosition[1] += direction[1];
+
+                grid[bulletPosition[0]][bulletPosition[1]] = '*';
+                displayGrid();
+                usleep(250000);
+            }
+        }
+
 };
 
 class graphTracer: public tank {
@@ -94,12 +111,20 @@ int main(void){
     init_pair(4, COLOR_GREEN, COLOR_GREEN);
     //Graph tracer color
     init_pair(5, COLOR_MAGENTA, COLOR_MAGENTA);
+    //Color of bullet
+    init_pair(6, COLOR_RED, COLOR_RED);
 
     //Start of main
     makeGrid();
     generateMaze();
 
-    //tank playerOne({0,0}, 'H');
+    tank playerOne({0,0}, 'H');
+    tank playerTwo({0,1}, 'M');
+
+    playerOne.shoot(RIGHT);
+    playerOne.shoot(UP);
+    playerOne.shoot(DOWN);
+    playerOne.shoot(LEFT);
 
     displayGrid();
 }
@@ -131,6 +156,7 @@ void displayGrid(void){
             int color;
 
             switch(grid[i][j]){
+                case 'O':
                 case 'X':
                     color = 5;
                     break;
@@ -143,8 +169,8 @@ void displayGrid(void){
                 case 'M':
                     color = 4;
                     break;
-                case 'O':
-                    color = 5;
+                case '*':
+                    color = 6;
                     break;
             }
             attron(COLOR_PAIR(color));
