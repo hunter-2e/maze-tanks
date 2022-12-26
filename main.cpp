@@ -10,10 +10,12 @@
 #include <algorithm>
 
 using namespace std;
+class tank;
 
 void makeGrid(void);
 void displayGrid(void);
 void generateMaze(void);
+void controller(char pressed, tank playerOne, tank playerTwo);
 vector<int> randomDirection(vector<vector<int>> possibleDirections);
 
 vector<int> RIGHT ={0,1};
@@ -43,6 +45,18 @@ class tank{
             position = {(startingPosition[0] * 2) + 1, (startingPosition[1] * 2) + 1};
 
             grid[(startingPosition[0] * 2) + 1][(startingPosition[1] * 2) + 1] = letter;
+        }
+
+        void moveTank(vector<int> direction){
+            if(grid[position[0]+direction[0]][position[1]+direction[1]] == ' '){
+                grid[position[0]][position[1]] = ' ';
+                
+                position[0] += direction[0];
+                position[1] += direction[1];
+
+                grid[position[0]][position[1]] = letter;
+                displayGrid();
+            }
         }
 
         void shoot(vector<int> direction){
@@ -100,7 +114,7 @@ int main(void){
     keypad(stdscr, true);
     noecho();
     curs_set(0);
-
+    
     //Color of walls
     init_pair(1, COLOR_BLACK, COLOR_BLACK);
     //Color of open space
@@ -119,14 +133,13 @@ int main(void){
     generateMaze();
 
     tank playerOne({0,0}, 'H');
-    tank playerTwo({0,1}, 'M');
-
-    playerOne.shoot(RIGHT);
-    playerOne.shoot(UP);
-    playerOne.shoot(DOWN);
-    playerOne.shoot(LEFT);
-
+    tank playerTwo({0,1}, 'M');   
     displayGrid();
+
+    while(1){
+        controller(getch(), playerOne, playerTwo);
+    }
+
 }
 
 void makeGrid(void){
@@ -243,4 +256,33 @@ vector<int> randomDirection(vector<vector<int>> possibleDirections){
     int random = rand() % possibleDirections.size();
 
     return possibleDirections[random];
+}
+
+void controller(char pressed, tank playerOne, tank playerTwo){
+    switch(pressed){
+        case '-':
+            playerTwo.moveTank(UP);
+            break;
+        case ']':
+            playerTwo.moveTank(RIGHT);
+            break;
+        case '[':
+            playerTwo.moveTank(DOWN);
+            break;
+        case 'p':
+            playerTwo.moveTank(LEFT);
+            break;
+        case 'w':
+            playerOne.moveTank(UP);
+            break;
+        case 's':
+            playerOne.moveTank(DOWN);
+            break;
+        case 'a':
+            playerOne.moveTank(LEFT);
+            break;
+        case 'd':
+            playerOne.moveTank(RIGHT);
+            break;
+    }
 }
