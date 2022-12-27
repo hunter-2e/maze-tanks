@@ -15,7 +15,7 @@ class tank;
 void makeGrid(void);
 void displayGrid(void);
 void generateMaze(void);
-void controller(char pressed, tank playerOne, tank playerTwo);
+void controller(char pressed, tank *playerOne, tank *playerTwo);
 vector<int> randomDirection(vector<vector<int>> possibleDirections);
 
 vector<int> RIGHT ={0,1};
@@ -137,7 +137,7 @@ int main(void){
     displayGrid();
 
     while(1){
-        controller(getch(), playerOne, playerTwo);
+        controller(getch(), &playerOne, &playerTwo);
     }
 
 }
@@ -258,31 +258,31 @@ vector<int> randomDirection(vector<vector<int>> possibleDirections){
     return possibleDirections[random];
 }
 
-void controller(char pressed, tank playerOne, tank playerTwo){
+void controller(char pressed, tank *playerOne, tank *playerTwo){
     switch(pressed){
         case '-':
-            playerTwo.moveTank(UP);
+            playerTwo->moveTank(UP);
             break;
         case ']':
-            playerTwo.moveTank(RIGHT);
+            playerTwo->moveTank(RIGHT);
             break;
         case '[':
-            playerTwo.moveTank(DOWN);
+            playerTwo->moveTank(DOWN);
             break;
         case 'p':
-            playerTwo.moveTank(LEFT);
+            playerTwo->moveTank(LEFT);
             break;
         case 'w':
-            playerOne.moveTank(UP);
+            playerOne->moveTank(UP);
             break;
         case 's':
-            playerOne.moveTank(DOWN);
+            playerOne->moveTank(DOWN);
             break;
         case 'a':
-            playerOne.moveTank(LEFT);
+            playerOne->moveTank(LEFT);
             break;
         case 'd':
-            playerOne.moveTank(RIGHT);
+            playerOne->moveTank(RIGHT);
             break;
     }
 }
