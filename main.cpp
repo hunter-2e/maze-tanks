@@ -8,13 +8,17 @@
 #include <thread>
 #include <deque>
 #include <algorithm>
+#include <cstdio>
+#include <mutex>
+#include <cstring>
 
 using namespace std;
+std::mutex mu;
 class tank;
 
 void makeGrid(void);
 void displayGrid(void);
-void generateMaze(void);
+void generateMaze(const char* type = "dfs");
 void controller(char pressed, tank *playerOne, tank *playerTwo);
 vector<int> randomDirection(vector<vector<int>> possibleDirections);
 
@@ -23,7 +27,7 @@ vector<int> LEFT = {0,-1};
 vector<int> DOWN = {1,0};
 vector<int> UP = {-1,0}; 
 
-enum size {height = 23, width = 23};
+enum size {height = 45, width = 45};
 vector<vector<char>> grid;
 
 
@@ -60,19 +64,41 @@ class tank{
         }
 
         void shoot(vector<int> direction){
-            vector<int> bulletPosition = position;
+            thread bullet(&tank::shooting, this, direction);
+            bullet.join();
+        }
 
-            while(grid[bulletPosition[0]+direction[0]][bulletPosition[1]+direction[1]] == ' '){
+        void shooting(vector<int> direction){
+            vector<int> bulletPosition = position;
+            bool winner = false;
+
+            while(grid[bulletPosition[0]+direction[0]][bulletPosition[1]+direction[1]] == ' ' || grid[bulletPosition[0]+direction[0]][bulletPosition[1]+direction[1]] == 'M' || grid[bulletPosition[0]+direction[0]][bulletPosition[1]+direction[1]] == 'H'){
                 if(grid[bulletPosition[0]][bulletPosition[1]] == '*'){
                     grid[bulletPosition[0]][bulletPosition[1]] = ' ';
                 }
-                
+                if(grid[bulletPosition[0]+direction[0]][bulletPosition[1]+direction[1]] == 'M'){
+                    cout << "Hunter Wins!" << endl;
+                    winner = true;
+                }
+                else if(grid[bulletPosition[0]+direction[0]][bulletPosition[1]+direction[1]] == 'H'){
+                    cout << "Matt Wins!" << endl;
+                    winner = true;
+                }
+
                 bulletPosition[0] += direction[0];
                 bulletPosition[1] += direction[1];
 
                 grid[bulletPosition[0]][bulletPosition[1]] = '*';
                 displayGrid();
-                usleep(250000);
+                this_thread::sleep_for(chrono::milliseconds(500));
+            }
+            //Stops bullet from being permanent
+            grid[bulletPosition[0]][bulletPosition[1]] = ' ';
+            displayGrid();
+
+            if(winner){
+                usleep(1000000);
+                exit(1);
             }
         }
 
@@ -126,14 +152,14 @@ int main(void){
     //Graph tracer color
     init_pair(5, COLOR_MAGENTA, COLOR_MAGENTA);
     //Color of bullet
-    init_pair(6, COLOR_RED, COLOR_RED);
+    init_pair(6, COLOR_BLACK, COLOR_BLACK);
 
     //Start of main
     makeGrid();
-    generateMaze();
+    generateMaze("prim");
 
     tank playerOne({0,0}, 'H');
-    tank playerTwo({0,1}, 'M');   
+    tank playerTwo({0,int(width/2)-1}, 'M');   
     displayGrid();
 
     while(1){
@@ -164,6 +190,8 @@ void makeGrid(void){
 }
 
 void displayGrid(void){
+    mu.lock();
+
     for(int i = 0; i < height; i++){
         for(int j = 0; j < width; j++){
             int color;
@@ -193,61 +221,72 @@ void displayGrid(void){
         mvprintw(i, width*3, "\n");
     }
     refresh();
+
+    mu.unlock();
 }
 
-void generateMaze(void){
-    //Creating queue for depth first search
-    deque<vector<int>> nodes;
 
-    //List of visited nodes
-    vector<vector<int>> visited;
+void generateMaze(const char* type){
+    if(strcmp(type, "dfs") == 0){
+        //Creating queue for depth first search
+        deque<vector<int>> nodes;
 
-    //Stating position of DFS
-    vector<int> start = {(height-1)/2 - 1, (width-1)/2 - 1};
-    graphTracer tracer(start, ' ');
+        //List of visited nodes
+        vector<vector<int>> visited;
 
-    //Push starting position onto queue and mark as visited
-    nodes.push_front(start);
-    visited.push_back(start);
+        //Stating position of DFS
+        vector<int> start = {(height-1)/2 - 1, (width-1)/2 - 1};
+        graphTracer tracer(start, ' ');
 
-    //Main loop of generation
-    while(visited.size() < ((width - 1)/2 * (height - 1)/2) + 1){
+        //Push starting position onto queue and mark as visited
+        nodes.push_front(start);
+        visited.push_back(start);
 
-        vector<vector<int>> possibleDirections = {RIGHT, LEFT, UP, DOWN};
-        bool foundUnvisited = false;
-        while(possibleDirections.size() > 0){
-            mvprintw(50,50, "%d", possibleDirections.size());
-            //Get random direction
-            vector<int> randDirection = randomDirection(possibleDirections);
-            //Check remove random direction for next choice
-            possibleDirections.erase(remove(possibleDirections.begin(), possibleDirections.end(), randDirection), possibleDirections.end());
+        //Main loop of generation
+        while(visited.size() < ((width - 1)/2 * (height - 1)/2) + 1){
 
-            //Check if already been visited
-            vector<int> inVisited = tracer.toVisit(randDirection);
-            if(inVisited[0] > height - 2 || inVisited[1] > width - 2 || inVisited[0] < 1 || inVisited[1] < 1){
-                continue;
+            vector<vector<int>> possibleDirections = {RIGHT, LEFT, UP, DOWN};
+            bool foundUnvisited = false;
+            while(possibleDirections.size() > 0){
+                mvprintw(50,50, "%d", possibleDirections.size());
+                //Get random direction
+                vector<int> randDirection = randomDirection(possibleDirections);
+                //Check remove random direction for next choice
+                possibleDirections.erase(remove(possibleDirections.begin(), possibleDirections.end(), randDirection), possibleDirections.end());
+
+                //Check if already been visited
+                vector<int> inVisited = tracer.toVisit(randDirection);
+                if(inVisited[0] > height - 2 || inVisited[1] > width - 2 || inVisited[0] < 1 || inVisited[1] < 1){
+                    continue;
+                }
+                if(find(visited.begin(), visited.end(), inVisited) == visited.end()){
+                    //If not visited go to it and push new position into visted and queue
+                    tracer.drawTo(randDirection);
+
+                    visited.push_back(inVisited);
+                    nodes.push_front(inVisited);
+
+                    foundUnvisited = true;
+                    break;
             }
-            if(find(visited.begin(), visited.end(), inVisited) == visited.end()){
-                //If not visited go to it and push new position into visted and queue
-                tracer.drawTo(randDirection);
 
-                visited.push_back(inVisited);
-                nodes.push_front(inVisited);
+            }
 
-                foundUnvisited = true;
-                break;
+            if(possibleDirections.size() == 0 && foundUnvisited == false){
+                nodes.pop_front();
+
+                tracer.setTracer(nodes.front());
+            }
+            
+
+
         }
+    }
 
-        }
+    else if(strcmp(type, "prim") == 0){
+        graphTracer tracer({(height/4)-1, (width/4)-1}, ' ');
 
-        if(possibleDirections.size() == 0 && foundUnvisited == false){
-            nodes.pop_front();
-
-            tracer.setTracer(nodes.front());
-        }
         
-
-
     }
     
 }
@@ -283,6 +322,30 @@ void controller(char pressed, tank *playerOne, tank *playerTwo){
             break;
         case 'd':
             playerOne->moveTank(RIGHT);
+            break;
+        case 'f':
+            playerOne->shoot(UP);
+            break;
+        case 'b':
+            playerOne->shoot(RIGHT);
+            break;
+        case 'v':
+            playerOne->shoot(DOWN);
+            break;
+        case 'c':
+            playerOne->shoot(LEFT);
+            break;
+         case 'i':
+            playerTwo->shoot(UP);
+            break;
+        case 'l':
+            playerTwo->shoot(RIGHT);
+            break;
+        case 'k':
+            playerTwo->shoot(DOWN);
+            break;
+        case 'j':
+            playerTwo->shoot(LEFT);
             break;
     }
 }
