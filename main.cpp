@@ -153,6 +153,8 @@ int main(void){
     init_pair(5, COLOR_MAGENTA, COLOR_MAGENTA);
     //Color of bullet
     init_pair(6, COLOR_BLACK, COLOR_BLACK);
+    //Tracer testing red
+    init_pair(7, COLOR_RED, COLOR_RED);
 
     //Start of main
     makeGrid();
@@ -212,6 +214,9 @@ void displayGrid(void){
                     break;
                 case '*':
                     color = 6;
+                    break;
+                case 'Y':
+                    color = 7;
                     break;
             }
             attron(COLOR_PAIR(color));
@@ -284,18 +289,24 @@ void generateMaze(const char* type){
 
     else if(strcmp(type, "prim") == 0){
         vector<vector<int>> possibleDirections = {RIGHT, LEFT, UP, DOWN};
-        vector<int> start = {(height/2)-1, (width/2)-1};
-        vector<vector<int>> visited = {start};
+        vector<int> start = {(height/4)-1, (width/4)-1};
+        vector<vector<int>> visited = {{(height/2)-1, (width/2)-1}};
 
-        graphTracer tracer(start, ' ');
+        graphTracer tracer(start, 'Y');
 
         displayGrid();
 
         while(visited.size() < ((width - 1)/2 * (height - 1)/2) + 1){
+            //Vector of coordinates of possible removable walls to be randomly selected from
             vector<vector<int>> removable;
 
             for(int i = 0; i < visited.size(); i++){
                 for(int side = 0; side < possibleDirections.size(); side++){
+                //Set the tracer to each visited cell to look at adjacent cells
+                tracer.setTracer(visited[i]);
+                //Make sure to change visted to red
+                grid[tracer.position[0]][tracer.position[1]] = 'Y';
+
                 vector<int> maybeMove = tracer.toVisit(possibleDirections[side]);
                 
                 if(maybeMove[0] > height - 2 || maybeMove[1] > width - 2 || maybeMove[0] < 1 || maybeMove[1] < 1 || find(visited.begin(), visited.end(), maybeMove) != visited.end()){
@@ -316,11 +327,6 @@ void generateMaze(const char* type){
         //Check if subtracting direction gets to already visited cell
         vector<int> checkRightDirection = {defMove[0] - possibleDirections[side][0], defMove[1] - possibleDirections[side][1]};
 
-        cout << defMove[0] << " "<< defMove[1] << endl;
-        cout << visited[0][0] << " " << visited[0][1] << endl;
-
-        exit(1);
-        
         if(find(visited.begin(), visited.end(), checkRightDirection) != visited.end()){
 
             tracer.setTracer(checkRightDirection);
@@ -328,7 +334,7 @@ void generateMaze(const char* type){
             displayGrid();
 
             tracer.drawTo(possibleDirections[side]);
-            visited.push_back(tracer.toVisit(possibleDirections[side]));
+            visited.push_back(tracer.position);
             break;
         }
     }
@@ -336,7 +342,9 @@ void generateMaze(const char* type){
 }
     }
     
+        
 }
+
 
 vector<int> randomDirection(vector<vector<int>> possibleDirections){
     int random = rand() % possibleDirections.size();
