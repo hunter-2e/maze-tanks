@@ -248,7 +248,6 @@ void generateMaze(const char* type){
             vector<vector<int>> possibleDirections = {RIGHT, LEFT, UP, DOWN};
             bool foundUnvisited = false;
             while(possibleDirections.size() > 0){
-                mvprintw(50,50, "%d", possibleDirections.size());
                 //Get random direction
                 vector<int> randDirection = randomDirection(possibleDirections);
                 //Check remove random direction for next choice
@@ -284,9 +283,57 @@ void generateMaze(const char* type){
     }
 
     else if(strcmp(type, "prim") == 0){
-        graphTracer tracer({(height/4)-1, (width/4)-1}, ' ');
+        vector<vector<int>> possibleDirections = {RIGHT, LEFT, UP, DOWN};
+        vector<int> start = {(height/2)-1, (width/2)-1};
+        vector<vector<int>> visited = {start};
 
+        graphTracer tracer(start, ' ');
+
+        displayGrid();
+
+        while(visited.size() < ((width - 1)/2 * (height - 1)/2) + 1){
+            vector<vector<int>> removable;
+
+            for(int i = 0; i < visited.size(); i++){
+                for(int side = 0; side < possibleDirections.size(); side++){
+                vector<int> maybeMove = tracer.toVisit(possibleDirections[side]);
+                
+                if(maybeMove[0] > height - 2 || maybeMove[1] > width - 2 || maybeMove[0] < 1 || maybeMove[1] < 1 || find(visited.begin(), visited.end(), maybeMove) != visited.end()){
+                    continue;
+                }
+                maybeMove[0] -= possibleDirections[side][0];
+                maybeMove[1] -= possibleDirections[side][1];
+
+                removable.push_back(maybeMove);
+        }
+    }
+
+    //Randomly select possible nodes to move to
+    int indexOfRemovable = rand() % removable.size();
+    vector<int> defMove = removable[indexOfRemovable];
+
+    for(int side = 0; side < possibleDirections.size(); side++){
+        //Check if subtracting direction gets to already visited cell
+        vector<int> checkRightDirection = {defMove[0] - possibleDirections[side][0], defMove[1] - possibleDirections[side][1]};
+
+        cout << defMove[0] << " "<< defMove[1] << endl;
+        cout << visited[0][0] << " " << visited[0][1] << endl;
+
+        exit(1);
         
+        if(find(visited.begin(), visited.end(), checkRightDirection) != visited.end()){
+
+            tracer.setTracer(checkRightDirection);
+
+            displayGrid();
+
+            tracer.drawTo(possibleDirections[side]);
+            visited.push_back(tracer.toVisit(possibleDirections[side]));
+            break;
+        }
+    }
+
+}
     }
     
 }
